@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - DevBlog</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f8f9fa; }
+    nav { background: #2c3e50; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    nav a { color: #ecf0f1; text-decoration: none; margin: 0 12px; }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .box { background: white; padding: 25px; border-radius: 8px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 10px 18px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; margin-right: 5px; }
+    .btn-green { background: #27ae60; color: white; }
+    .btn-blue { background: #3498db; color: white; }
+    .btn-red { background: #e74c3c; color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div style="font-size: 20px; font-weight: bold; color: white;">DevBlog Admin Panel</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/blogs.html">Blogs</a>
+      <a href="/about.html">About Us</a>
+      <a href="/contact.html">Contact Us</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h1 style="margin:0;">Manage Blog Posts</h1>
+      <div>
+        <span id="welcomeUser" style="margin-right: 15px; font-weight: bold; color: #2c3e50;"></span>
+        <button class="btn-red" onclick="logout()">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Create / Edit Blog Box -->
+    <div class="box">
+      <h2 id="formTitle">Add New Post</h2>
+      <form id="blogForm">
+        <input type="hidden" id="blogId">
+        <input id="title" placeholder="Blog Post Title" required>
+        <textarea id="content" placeholder="Write post content here..." rows="6" required></textarea>
+        <button type="submit" class="btn-green">Save Post</button>
+        <button type="button" class="btn-blue" onclick="resetForm()">Clear Form</button>
+      </form>
+    </div>
+
+    <!-- Manage Existing Blogs -->
+    <div class="box">
+      <h2>Existing Posts (Edit / Remove)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th style="width: 180px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="blogsTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
+    // Protect Admin Page: Redirection if not Admin
+    if (!token || role !== 'admin') {
+      alert('Access Restricted! Please log in with an Admin account.');
+      window.location.href = '/login.html';
+    } else {
+      document.getElementById('welcomeUser').innerText = 'Admin: ' + (localStorage.getItem('username') || '');
+      loadBlogs();
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    async function loadBlogs() {
+      const res = await fetch('/api/blogs');
+      const blogs = await res.json();
+      const tbody = document.getElementById('blogsTable');
+      tbody.innerHTML = '';
+      
+      blogs.forEach(b => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${b.title}</td>
+            <td>
+              <button class="btn-blue" onclick="editBlog('${b._id}', '${escape(b.title)}', '${escape(b.content)}')">Edit</button>
+              <button class="btn-red" onclick="deleteBlog('${b._id}')">Remove</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    document.getElementById('blogForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('blogId').value;
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/api/blogs/${id}` : '/api/blogs';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, content })
+      });
+
+      if (res.ok) {
+        alert(id ? 'Post updated successfully!' : 'Post added successfully!');
+        resetForm();
+        loadBlogs();
+      } else {
+        alert('Error saving post. Check your server connection.');
+      }
+    };
+
+    function editBlog(id, title, content) {
+      document.getElementById('blogId').value = id;
+      document.getElementById('title').value = unescape(title);
+      document.getElementById('content').value = unescape(content);
+      document.getElementById('formTitle').innerText = 'Edit Post';
+    }
+
+    function resetForm() {
+      document.getElementById('blogForm').reset();
+      document.getElementById('blogId').value = '';
+      document.getElementById('formTitle').innerText = 'Add New Post';
+    }
+
+    async function deleteBlog(id) {
+      if (!confirm('Are you sure you want to remove this post?')) return;
+      const res = await fetch(`/api/blogs/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        loadBlogs();
+      } else {
+        alert('Failed to delete post.');
+      }
+    }
+  </script>
+</body>
+</html>

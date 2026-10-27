@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign In & Sign Up - Lumina</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f6f9; }
+    nav { background: #1a1a2e; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    nav a { color: #e6e6e6; text-decoration: none; margin: 0 12px; font-weight: 500; }
+    .auth-card { max-width: 400px; margin: 60px auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
+    h2 { margin-top: 0; color: #1a1a2e; text-align: center; }
+    input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-submit { background: #e94560; color: white; }
+    .toggle { text-align: center; margin-top: 15px; font-size: 14px; }
+    .toggle a { color: #0f3460; font-weight: bold; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div style="font-size: 22px; font-weight: bold; color: #e94560;">Lumina</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/blogs.html">Blogs</a>
+      <a href="/about.html">About Lumina</a>
+      <a href="/contact.html">Contact Us</a>
+    </div>
+  </nav>
+
+  <div class="auth-card">
+    <!-- Sign In -->
+    <div id="loginForm">
+      <h2>Welcome Back</h2>
+      <input id="loginUser" placeholder="Username" required>
+      <input id="loginPass" type="password" placeholder="Password" required>
+      <button class="btn-submit" onclick="login()">Sign In</button>
+      <p class="toggle">Need an account? <a href="#" onclick="showAuth('signup')">Sign Up</a></p>
+    </div>
+
+    <!-- Sign Up -->
+    <div id="signupForm" style="display:none;">
+      <h2>Create Account</h2>
+      <input id="signupUser" placeholder="Username" required>
+      <input id="signupPass" type="password" placeholder="Password" required>
+      <button class="btn-submit" style="background:#0f3460;" onclick="signup()">Sign Up</button>
+      <p class="toggle">Already have an account? <a href="#" onclick="showAuth('login')">Sign In</a></p>
+    </div>
+  </div>
+
+  <script>
+    function showAuth(type) {
+      document.getElementById('loginForm').style.display = type === 'login' ? 'block' : 'none';
+      document.getElementById('signupForm').style.display = type === 'signup' ? 'block' : 'none';
+    }
+
+    async function signup() {
+      const username = document.getElementById('signupUser').value;
+      const password = document.getElementById('signupPass').value;
+      if (!username || !password) return alert('Fill in all fields');
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role: 'admin' }) // All users automatically get full permissions
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Account created! Logging you in...');
+        loginAfterSignup(username, password);
+      } else {
+        alert(data.message || 'Signup failed');
+      }
+    }
+
+    async function loginAfterSignup(username, password) {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username);
+        window.location.href = '/dashboard.html';
+      }
+    }
+
+    async function login() {
+      const username = document.getElementById('loginUser').value;
+      const password = document.getElementById('loginPass').value;
+      if (!username || !password) return alert('Fill in all fields');
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', username);
+        window.location.href = '/dashboard.html';
+      } else {
+        alert(data.message || 'Invalid username or password');
+      }
+    }
+  </script>
+</body>
+</html>

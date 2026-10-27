@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>All Blogs - DevBlog</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f8f9fa; }
+    nav { background: #2c3e50; padding: 15px 30px; display: flex; justify-content: space-between; }
+    nav a { color: #ecf0f1; text-decoration: none; margin: 0 12px; }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .post-item { background: white; padding: 25px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .post-item h2 { margin-top: 0; color: #2c3e50; }
+    .btn { background: #3498db; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; display: inline-block; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div style="font-size: 20px; font-weight: bold; color: white;">DevBlog</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/blogs.html">Blogs</a>
+      <a href="/about.html">About Us</a>
+      <a href="/contact.html">Contact Us</a>
+      <a href="/admin.html">Admin Panel</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>All Blog Articles</h1>
+    <div id="allBlogs">Loading...</div>
+  </div>
+
+  <script>
+    async function loadAllBlogs() {
+      const res = await fetch('/api/blogs');
+      const blogs = await res.json();
+      const container = document.getElementById('allBlogs');
+      if(!blogs.length) { container.innerHTML = '<p>No blogs published yet.</p>'; return; }
+      
+      container.innerHTML = blogs.map(b => `
+        <div class="post-item">
+          <h2>${b.title}</h2>
+          <small style="color: #888;">Published on ${new Date(b.createdAt).toLocaleDateString()}</small>
+          <p>${b.content.substring(0, 200)}...</p>
+          <a class="btn" href="/blog.html?id=${b._id}">Read Article</a>
+        </div>
+      `).join('');
+    }
+    loadAllBlogs();
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Blog Post</title>
+  <style>
+    body { font-family: sans-serif; margin: 40px; background: #f4f4f9; }
+    .container { background: white; padding: 30px; border-radius: 8px; max-width: 800px; }
+  </style>
+</head>
+<body>
+  <p><a href="/">&larr; Back to Home</a></p>
+  <div class="container" id="post">Loading...</div>
+
+  <script>
+    const id = new URLSearchParams(window.location.search).get('id');
+    async function loadPost() {
+      const res = await fetch(`/api/blogs/${id}`);
+      if (!res.ok) return document.getElementById('post').innerText = 'Post not found.';
+      const blog = await res.json();
+      document.getElementById('post').innerHTML = `
+        <h1>${blog.title}</h1>
+        <small>Published on: ${new Date(blog.createdAt).toLocaleDateString()}</small>
+        <hr>
+        <p style="white-space: pre-line;">${blog.content}</p>`;
+    }
+    loadPost();
+  </script>
+</body>
+</html>

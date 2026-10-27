@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Blogs - Lumina</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f6f9; }
+    nav { background: #1a1a2e; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    nav a { color: #e6e6e6; text-decoration: none; margin: 0 12px; }
+    .container { max-width: 900px; margin: 30px auto; padding: 0 20px; }
+    .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; }
+    input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    button { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .btn-save { background: #e94560; color: white; }
+    .btn-edit { background: #0f3460; color: white; }
+    .btn-delete { background: #d9534f; color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+    th { background: #f8f9fa; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div style="font-size: 22px; font-weight: bold; color: #e94560;">Lumina Dashboard</div>
+    <div>
+      <a href="/">Home</a>
+      <a href="/blogs.html">Blogs</a>
+      <a href="/about.html">About Lumina</a>
+      <a href="/contact.html">Contact Us</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+      <h2 id="userGreeting">Your Blog Dashboard</h2>
+      <button class="btn-delete" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Create or Edit Post -->
+    <div class="card">
+      <h3 id="formTitle">Create New Blog Post</h3>
+      <form id="blogForm">
+        <input type="hidden" id="blogId">
+        <input id="title" placeholder="Post Title" required>
+        <textarea id="content" placeholder="Write your content here..." rows="6" required></textarea>
+        <button type="submit" class="btn-save">Save & Publish</button>
+        <button type="button" style="background:#888; color:white;" onclick="resetForm()">Clear</button>
+      </form>
+    </div>
+
+    <!-- List & Manage Posts -->
+    <div class="card">
+      <h3>Manage All Blog Posts</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th style="width: 170px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="blogsTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Please sign in to access your dashboard');
+      window.location.href = '/login.html';
+    } else {
+      document.getElementById('userGreeting').innerText = 'Welcome back, ' + (localStorage.getItem('username') || 'Blogger');
+      loadBlogs();
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/login.html';
+    }
+
+    async function loadBlogs() {
+      const res = await fetch('/api/blogs');
+      const blogs = await res.json();
+      const tbody = document.getElementById('blogsTable');
+      tbody.innerHTML = '';
+      blogs.forEach(b => {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${b.title}</strong></td>
+            <td>
+              <button class="btn-edit" onclick="editBlog('${b._id}', '${escape(b.title)}', '${escape(b.content)}')">Edit</button>
+              <button class="btn-delete" onclick="deleteBlog('${b._id}')">Remove</button>
+            </td>
+          </tr>`;
+      });
+    }
+
+    document.getElementById('blogForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('blogId').value;
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/api/blogs/${id}` : '/api/blogs';
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, content })
+      });
+
+      if (res.ok) {
+        alert(id ? 'Post updated!' : 'Post published!');
+        resetForm();
+        loadBlogs();
+      } else {
+        alert('Failed to save post.');
+      }
+    };
+
+    function editBlog(id, title, content) {
+      document.getElementById('blogId').value = id;
+      document.getElementById('title').value = unescape(title);
+      document.getElementById('content').value = unescape(content);
+      document.getElementById('formTitle').innerText = 'Edit Blog Post';
+    }
+
+    function resetForm() {
+      document.getElementById('blogForm').reset();
+      document.getElementById('blogId').value = '';
+      document.getElementById('formTitle').innerText = 'Create New Blog Post';
+    }
+
+    async function deleteBlog(id) {
+      if (!confirm('Are you sure you want to remove this blog?')) return;
+      const res = await fetch(`/api/blogs/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) loadBlogs();
+      else alert('Failed to delete post.');
+    }
+  </script>
+</body>
+</html>
